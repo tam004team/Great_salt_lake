@@ -1,1 +1,124 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大鹽湖行動</title>
+  <style>
+    body {
+      margin: 0;
+      background: transparent;
+      //overflow: hidden;
+      font-family: 'Noto Sans TC', sans-serif;
+      color: white;
+      text-align: center;
+    }
 
+    .hidden { display: none; }
+    button {
+      margin: 1em;
+      padding: 0.75em 2em;
+      font-size: 1.2em;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      background: #1e90ff;
+      color: white;
+      transition: background 0.3s ease;
+    }
+    button:hover { background: #63b3ed; }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      padding-top: 5vh;
+      background-color: rgba(0, 0, 0, 0.8);
+    }
+
+    h1 {
+      font-size: 2.5em;             /* 字體大小 */
+      color: #ffffff;              /* 白色字體比較適合做光暈效果 */
+      font-weight: bold;           /* 粗體 */
+      text-align: center;          /* 置中 */
+      margin-bottom: 35px;         /* 下方留空 */
+      margin-top: 0px;
+      text-shadow: 
+        0 0 5px #00ffff,           /* 淺藍光暈 */
+        0 0 10px #00ffff,
+        0 0 15px #00ffff,
+        0 0 20px #00ffff;
+      /*background-color: #000000;   /* 建議加深背景讓光暈更明顯 */
+      padding: 0px;
+      border-radius: 10px;
+    }
+
+    h4 {
+      font-size: 1.4em;
+      line-height: 1.6;
+      margin-top: -1em;
+      margin-bottom: 1em;
+      color: #00ffcc;
+    }
+
+    h5 {
+      font-size: 1.2em;
+      line-height: 1.2;
+      margin-top: 0em;
+      margin-bottom: 1em;
+      color: #b5fff0;
+    }
+
+    .intro {
+      text-align: justify;
+      margin-bottom: 0em;
+      background: rgba(255,255,255,0.05);
+      padding: 0.5em;
+      border-radius: 10px;
+    }
+
+    .link-bar {
+      margin-top: 3em;
+      font-size: 0.9em;
+    }
+
+    .link-bar a {
+      color: #66ccff;
+      margin: 0 10px;
+      text-decoration: none;
+    }
+
+    .link-bar a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div id="start-screen">
+      <h1>關於我轉生<br>變成毛毛蟲這檔事</h1>
+      <h4>當人生重啟，卻變成一隻毛毛蟲…<br>命運已織就，踏上覺醒之路！</h4>
+      <div class="intro">
+        <h5>一覺醒來，我發現自己不是人類了。沒錯，我轉生了——變成一隻微不足道的毛毛蟲。在這片充滿掠食者的叢林，唯一的生存之道，就是「吃、躲、蛻變」。想活到成為蝴蝶？呵，我得先撐過那些想把我當午餐的傢伙！</h5>
+        <h5>立體劇場電影《蝴蝶奇幻旅程》的故事化為這款肉鴿小遊戲。從幼蟲開始，經歷掙扎、蛻變、飛翔。</h5>
+        <h5>蟲到蝶的傳說，現在開始書寫！</h5>
+        <h3>🔍 遊戲說明</h3>
+        <p>🌌 <strong>背景故事</strong><br>這是一款肉鴿探索的生存遊戲。你轉生成為一隻帝王斑蝶的幼蟲，從孵化開始，必須拼盡全力存活、覓食、閃避天敵，最終完成命定的蛻變。</p>
+        <p>🧠 <strong>玩法簡介</strong><br>以虛擬搖桿或 WASD 鍵操作毛毛蟲，探索環境、收集食物補充能量。</p>
+        <p>🏆 <strong>目標與結局</strong><br>當能量足夠、蛻變條件達成，你將進入蝴蝶階段，開啟飛行與遷徙之章。命運的終點可能是榮耀與自由，也可能是折翼墜地——一切由你決定！</p>
+      </div>
+      <p>註：本遊戲介面設計以手機使用者為主，於電腦瀏覽時部分內容可能無法完整顯示。</p>
+      <button onclick="startGame()">開始探險</button>
+    </div>
+    
+  </div>
+
+  <script>
+    function startGame() {
+      localStorage.removeItem('gameTime');
+      location.href = "https://bonbonchou.github.io/Butterfly_Journey/game.html";
+    }
+  </script>
+
+</body>
+</html>
