@@ -1,1 +1,132 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>遊戲頁</title>
+  <style>
+    /* 預設樣式重設與背景色 */
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: transparent;//background-color: #234c2f;
+      color: white;
+      //text-align: center;
+    }
 
+    #game-container {
+      position: relative;
+      width: 100vw;
+      height: 100vh;
+      background-color: transparent;//rgba(0, 0, 0, 0.8);
+      touch-action: none;
+    }
+
+    /* 遊戲畫布 */
+    canvas {
+      position: absolute;     /* 把兩張 canvas 疊在容器裡 */
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+    #game-canvas { z-index: 0; }
+    #mask-canvas { z-index: 10; pointer-events: none; }
+    #ui-canvas   { z-index: 20; pointer-events: none; }
+
+    /* 升級選項卡 */
+    #upgrade-container {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      z-index: 1000;
+    }
+    .upgrade-card {
+      background: rgba(0,0,0,0.85);
+      border: 2px solid #fff;
+      border-radius: 10px;
+      padding: 15px;
+      width: 200px;
+      color: white;
+      cursor: pointer;
+      text-align: center;
+      transition: transform 0.15s ease;
+    }
+    .upgrade-card:hover {
+      transform: scale(1.05);
+      border-color: yellow;
+    }
+    .upgrade-name {
+      font-size: 20px;
+      font-weight: bold;
+      margin-bottom: 10px;
+    }
+    .upgrade-desc {
+      font-size: 14px;
+    }
+
+    /* 對話框整體位置與樣式 */
+    #knowledge-dialog {
+      position: absolute;
+      z-index: 1000;
+      pointer-events: auto;
+    }
+
+    #dialog-box {
+      background: white;
+      border: 2px solid black;
+      border-radius: 10px;
+      padding: 15px;
+      width: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.4);
+    }
+
+    #dialog-text {
+      font-size: 16px;
+      margin-bottom: 10px;
+      color: black;
+      text-align: center;
+    }
+
+    #dialog-continue-btn {
+      padding: 6px 12px;
+      background-color: #339933;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      display: block; /* 讓按鈕變成區塊元素，才能使用 margin */
+      margin: 0 auto 0 auto; /* 上間距20px，自動左右置中 */
+    }
+    #dialog-continue-btn:hover { background: #63b3ed; }
+
+    /* 虛擬搖桿區 */
+    #joystick-container {
+      position: absolute;
+      width: 100px;
+      height: 100px;
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: 50%;
+      touch-action: none;
+      z-index: 20;
+      display: none; /* 一開始不顯示 */
+      align-items: center;
+      justify-content: center;
+      border: 2px solid #aaa;
+      pointer-events: none; /* 重要！避免攔截滑動 */
+    }
+
+    #joystick {
+      width: 40px;
+      height: 40px;
+      background-color: rgba(0, 255, 0, 0.5);
+      border-radius: 50%;
+      position: relative;
+    }
+  </style>
+</head>
