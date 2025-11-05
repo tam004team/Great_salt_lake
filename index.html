@@ -1,413 +1,98 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-Hant">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>拯救大鹽湖遊戲</title>
-<style>
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>大鹽湖行動</title>
+  <style>
+    body {
+      margin: 0;
+      background: transparent;
+      font-family: 'Noto Sans TC', sans-serif;
+      color: white;
+      text-align: center;
+    }
 
-body {
-  font-family: Arial, sans-serif;
-  background-color: #f0f8ff;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100vh;
-}
+    .stars {
+      position: fixed;
+      width: 100%;
+      height: 100%;
+      background: url('https://raw.githubusercontent.com/tam004team/Great_salt_lake/main/images/Salt_lake(summer).jpg') repeat-y center center / cover;
+      animation: scrollStars 60s linear infinite;
+      z-index: 0;
+      opacity: 0.8;
+    }
 
-.game-container {
-  text-align: center;
-  border: 2px solid #ddd;
-  padding: 20px;
-  background-color: #fff;
-  border-radius: 10px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  width: 350px;
-}
+    @keyframes scrollStars {
+      from { background-position-y: 0; }
+      to { background-position-y: 100%; }
+    }
 
-h1 {
-  font-size: 24px;
-  color: #333;
-  margin-bottom: 20px;
-}
+    button {
+      margin: 1em;
+      padding: 0.75em 2em;
+      font-size: 1.2em;
+      border-radius: 12px;
+      border: none;
+      cursor: pointer;
+      background: #1e90ff;
+      color: white;
+      transition: background 0.3s ease;
+    }
+    button:hover { background: #63b3ed; }
 
-.lake {
-  width: 100%;
-  height: 200px;
-  background-color: #e0e0e0;
-  border: 2px solid #00bfff;
-  margin-bottom: 20px;
-  position: relative;
-  overflow: hidden;
-  border-radius: 5px;
-}
+    .container {
+      position: relative;
+      z-index: 1;
+      padding-top: 5vh;
+    }
 
-.water {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  height: 0%;
-  background-color: #b0e0e6;
-  transition: height 0.2s ease, background-color 0.5s ease;
-}
+    h1 {
+      font-size: 2.5em;
+      color: #ffffff;
+      font-weight: bold;
+      text-align: center;
+      margin-bottom: 35px;
+      text-shadow: 0 0 5px #ff8c00, 0 0 10px #ff8c00, 0 0 15px #ff8c00, 0 0 20px #ff8c00;
+    }
 
-.floating-text {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
-  color: #0077ff;
-  font-weight: bold;
-  opacity: 0;
-  animation: floatUp 0.5s ease-out forwards;
-}
+    h3 { color: #000; }
+    h4 { font-size: 1.4em; line-height: 1.6; color: #ffff00; }
+    h5 { font-size: 1.2em; color: #00ffff; }
+    p { color: #000; }
 
-@keyframes floatUp {
-  0% { opacity: 1; bottom: 10px; }
-  100% { opacity: 0; bottom: 40px; }
-}
-
-.controls p {
-  font-size: 18px;
-  margin: 10px 0;
-}
-
-#click-button {
-  padding: 10px 20px;
-  font-size: 16px;
-  cursor: pointer;
-  background-color: #00bfff;
-  border: none;
-  border-radius: 5px;
-  color: white;
-}
-
-#click-button:active {
-  background-color: #0099cc;
-}
-
-/* 升級與題目視窗 */
-#upgrade-modal, #question-modal, #ready-modal, #end-screen {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0,0,0,0.5);
-  display: none;
-  justify-content: center;
-  align-items: center;
-}
-
-.modal-content {
-  background: white;
-  padding: 20px;
-  border-radius: 10px;
-  width: 320px;
-  text-align: center;
-}
-
-.upgrade-option, .answer-option, #restart-button {
-  margin: 8px 0;
-  padding: 8px;
-  background-color: #00bfff;
-  color: white;
-  border: none;
-  border-radius: 5px;
-  cursor: pointer;
-  width: 90%;
-}
-
-.upgrade-option:hover, .answer-option:hover, #restart-button:hover {
-  background-color: #0099cc;
-}
-</style>
+    .intro {
+      text-align: justify;
+      background: rgba(255,255,255,0.05);
+      padding: 0.5em;
+      border-radius: 10px;
+    }
+  </style>
 </head>
 <body>
-  <div class="game-container">
-    <h1>拯救乾涸的大鹽湖</h1>
-    <div class="lake">
-      <div class="water" id="water"></div>
-    </div>
-    <div class="controls">
-      <p>水量: <span id="water-level">0%</span></p>
-      <p>剩餘時間: <span id="timer">45</span>秒</p>
-      <button id="click-button">點擊拯救!</button>
-    </div>
-  </div>
-
-  <div id="upgrade-modal">
-    <div class="modal-content" id="modal-content">
-      <p id="modal-message"></p>
-      <div id="upgrade-options"></div>
-    </div>
-  </div>
-
-  <div id="question-modal">
-    <div class="modal-content" id="question-content">
-      <p id="question-text"></p>
-      <div id="answer-options"></div>
+  <div class="stars"></div>
+  <div class="container">
+    <div id="start-screen">
+      <h1>大鹽湖行動</h1>
+      <h4>大鹽湖面臨缺水乾涸危機<br>拯救它的作戰，刻不容緩!</h4>
+      <div class="intro">
+        <h5>竭盡所能為它注入生命活水吧！究竟大鹽湖能成功補滿水，回復往年孕育諸多生物的能力，抑或是徹底枯竭，就此從地圖上消失?它的命運就掌握在你手上!</h5>
+        <h5>立體劇場電影《探秘大鹽湖》的故事化為這款小遊戲。拯救大鹽湖，行動開始！</h5>
+        <h3>🔍 遊戲說明</h3>
+        <p>🌌 <strong>背景故事</strong><br>在人類過度開發下，大鹽湖水位顯著下降，面積也大幅縮小，而連年乾旱讓情況雪上加霜。</p>
+        <p>🧠 <strong>玩法簡介</strong><br>以滑鼠或觸控點擊螢幕為大鹽湖注水，並透過回答問題獲得各種能力。</p>
+        <p>🏆 <strong>目標與結局</strong><br>當能量足夠、蛻變條件達成，你將進入蝴蝶階段，開啟飛行與遷徙之章。命運的終點可能是榮耀與自由，也可能是折翼墜地——一切由你決定！</p>
+      </div>
+      <p>註：本遊戲介面設計以手機使用者為主，於電腦瀏覽時部分內容可能無法完整顯示。</p>
+      <button onclick="startGame()">開始探險</button>
     </div>
   </div>
 
-  <div id="ready-modal">
-    <div class="modal-content"><p>準備答題...</p></div>
-  </div>
-
-  <div id="end-screen">
-    <div class="modal-content">
-      <h2>遊戲結束！</h2>
-      <p id="final-score"></p>
-      <button id="restart-button">重新開始</button>
-    </div>
-  </div>
-
-<script>
-let waterLevel = 0;
-let timeLeft = 45;
-let clickPower = 0.2;
-let autoFillActive = false;
-let autoFillRate = 1000;
-let autoFillChance = 0;
-let autoFillMultiplier = 2;
-let autoFillTimer = null;
-let firstCorrect = false;
-
-const water = document.getElementById("water");
-const waterLevelDisplay = document.getElementById("water-level");
-const timerDisplay = document.getElementById("timer");
-const clickButton = document.getElementById("click-button");
-const modal = document.getElementById("upgrade-modal");
-const modalMessage = document.getElementById("modal-message");
-const upgradeOptions = document.getElementById("upgrade-options");
-const questionModal = document.getElementById("question-modal");
-const questionText = document.getElementById("question-text");
-const answerOptions = document.getElementById("answer-options");
-const readyModal = document.getElementById("ready-modal");
-const endScreen = document.getElementById("end-screen");
-const finalScore = document.getElementById("final-score");
-
-let upgradeCounts = { option1: 0, option2: 0, option3: 0, option4: 0 };
-
-const questions = [
-  {
-    time: 40,
-    text: "請問以下哪個角色的想法或態度最有助於減緩大鹽湖的缺水危機？",
-    options: [
-      "農夫:遇到豐水年時，認為自己很幸運，不需要再節約用水",
-      "青年:大鹽湖缺水是上一代惹的禍，他們自行解決就好",
-      "州政府:維持舊有法律，節省下來的水不須回流大鹽湖",
-      "牧場主:和州政府配合，投資新技術以使用更少的水種植農作物"
-    ],
-    correct: 3
-  },
-  {
-    time: 35,
-    text: "以下何者和大鹽湖現今面臨的危機較無關係？",
-    options: [
-      "因全球暖化，融冰增加造成水位上升且破壞天然滑雪場",
-      "鹽度上升，致使多種微生物、豐年蝦等都難以生存",
-      "湖床乾涸導致更多有毒沙塵飛揚",
-      "水位下降使孤島和大陸相連，捕食鳥類的掠食者得以進入"
-    ],
-    correct: 0
-  },
-  {
-    time: 25,
-    text: "以下何者在大鹽湖生態系中並非扮演主要角色？",
-    options: [
-      "浮游植物",
-      "豐年蝦",
-      "魚類",
-      "候鳥"
-    ],
-    correct: 2
-  },
-  {
-    time: 20,
-    text: "以下敘述何者正確？",
-    options: [
-      "大鹽湖的湖水密度之高，使人們可以輕易浮在水上",
-      "數量驚人的鹽水蒼蠅成為候鳥豐富的食物來源",
-      "不同棵白楊樹間因能共享水資源，使樹群成為地球上最大生物體之一",
-      "喇叭天鵝曾一度瀕臨滅絕，如今有數萬隻，是復育成功的案例",
-      "以上皆是"
-    ],
-    correct: 4
-  },
-  {
-    time: 10,
-    text: "以下何者消耗了最多大鹽湖上游的水？",
-    options: [
-      "家庭用水",
-      "農業",
-      "植物蒸散作用",
-      "工業"
-    ],
-    correct: 1
-  }
-];
-
-// === 顯示浮動水量 ===
-function showFloatingText(amount) {
-  const text = document.createElement("div");
-  text.className = "floating-text";
-  text.textContent = `+${amount.toFixed(1)}%`;
-  water.appendChild(text);
-  setTimeout(() => text.remove(), 500);
-}
-
-// === 更新水位 ===
-function updateWaterLevel() {
-  if (waterLevel > 100) waterLevel = 100;
-  waterLevelDisplay.textContent = `${waterLevel.toFixed(1)}%`;
-  water.style.height = `${waterLevel}%`;
-  if (waterLevel < 25) water.style.backgroundColor = "#b0e0e6";
-  else if (waterLevel < 50) water.style.backgroundColor = "#87ceeb";
-  else if (waterLevel < 75) water.style.backgroundColor = "#4682b4";
-  else water.style.backgroundColor = "#1e90ff";
-}
-
-// === 自動注水 ===
-function startAutoFill() {
-  if (autoFillTimer) clearInterval(autoFillTimer);
-  autoFillActive = true;
-  autoFillTimer = setInterval(() => {
-    let addAmount = 1;
-    if (Math.random() < autoFillChance) addAmount = autoFillMultiplier;
-    waterLevel += addAmount;
-    updateWaterLevel();
-    showFloatingText(addAmount);
-  }, autoFillRate);
-}
-
-// === 暫停與繼續 ===
-function pauseTimer() {
-  clearInterval(timerInterval);
-  if (autoFillTimer) clearInterval(autoFillTimer);
-}
-function resumeTimer() {
-  startTimer();
-  if (autoFillActive) startAutoFill();
-}
-
-// === 題目流程 ===
-function showReadyMessage(nextAction) {
-  pauseTimer();
-  readyModal.style.display = "flex";
-  setTimeout(() => {
-    readyModal.style.display = "none";
-    nextAction();
-  }, 2000);
-}
-
-function showQuestion(q) {
-  pauseTimer();
-  questionModal.style.display = "flex";
-  questionText.textContent = q.text;
-  answerOptions.innerHTML = "";
-  q.options.forEach((opt, i) => {
-    const btn = document.createElement("button");
-    btn.className = "answer-option";
-    btn.textContent = opt;
-    btn.onclick = () => handleAnswer(q, i);
-    answerOptions.appendChild(btn);
-  });
-}
-
-function handleAnswer(q, i) {
-  questionModal.style.display = "none";
-  if (i === q.correct) {
-    if (!firstCorrect) {
-      firstCorrect = true;
-      modal.style.display = "flex";
-      modalMessage.textContent = "獲得新機器，可自動注水！";
-      upgradeOptions.innerHTML = "";
-      setTimeout(() => {
-        modal.style.display = "none";
-        startAutoFill();
-        resumeTimer();
-      }, 1000);
-    } else {
-      showUpgradeMenu();
+  <script>
+    function startGame() {
+      localStorage.removeItem('gameTime');
+      location.href = "game.html";
     }
-  } else {
-    resumeTimer();
-  }
-}
-
-// === 顯示升級選單 ===
-function showUpgradeMenu() {
-  pauseTimer();
-  modal.style.display = "flex";
-  modalMessage.textContent = "選擇一項升級";
-  upgradeOptions.innerHTML = "";
-  if (upgradeCounts.option1 < 2) addUpgradeOption("每次點擊注水量上升0.1%", "option1");
-  if (upgradeCounts.option2 < 2) addUpgradeOption("自動注水時間間隔縮短0.2秒", "option2");
-  if (upgradeCounts.option3 < 2) addUpgradeOption("自動注水量加倍之機率上升25%", "option3");
-  if (upgradeCounts.option3 > 0 && upgradeCounts.option4 < 1) addUpgradeOption("自動注水遇加倍時，倍率由2倍增為3倍", "option4");
-}
-
-function addUpgradeOption(text, key) {
-  const btn = document.createElement("button");
-  btn.className = "upgrade-option";
-  btn.textContent = text;
-  btn.onclick = () => selectUpgrade(key);
-  upgradeOptions.appendChild(btn);
-}
-
-function selectUpgrade(key) {
-  upgradeCounts[key]++;
-  if (key === "option1") clickPower = clickPower < 0.3 ? 0.3 : 0.4;
-  else if (key === "option2") { autoFillRate = autoFillRate === 1000 ? 800 : 600; if (autoFillActive) startAutoFill(); }
-  else if (key === "option3") autoFillChance = autoFillChance === 0 ? 0.25 : 0.5;
-  else if (key === "option4") autoFillMultiplier = 3;
-  modal.style.display = "none";
-  resumeTimer();
-}
-
-// === 計時 ===
-let timerInterval;
-function startTimer() {
-  clearInterval(timerInterval);
-  timerInterval = setInterval(() => {
-    timeLeft--;
-    timerDisplay.textContent = timeLeft;
-
-    const q = questions.find(q => q.time === timeLeft);
-    if (q) showReadyMessage(() => showQuestion(q));
-
-    if (timeLeft <= 0) endGame();
-  }, 1000);
-}
-
-// === 結束頁面 ===
-function endGame() {
-  clearInterval(timerInterval);
-  if (autoFillTimer) clearInterval(autoFillTimer);
-  clickButton.disabled = true;
-  endScreen.style.display = "flex";
-  finalScore.textContent = `你的最終水位是 ${waterLevel.toFixed(1)}%`;
-}
-
-document.getElementById("restart-button").onclick = () => location.reload();
-
-// === 點擊事件 ===
-clickButton.addEventListener("click", () => {
-  if (waterLevel < 100) {
-    waterLevel += clickPower;
-    updateWaterLevel();
-    showFloatingText(clickPower);
-  }
-});
-
-// === 開始遊戲 ===
-updateWaterLevel();
-startTimer();
-</script>
+  </script>
 </body>
 </html>
