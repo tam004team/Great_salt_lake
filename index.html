@@ -27,7 +27,7 @@ body {
   background-color: #fff;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  width: 380px;
+  width: 350px;
 }
 
 h1 {
@@ -56,6 +56,21 @@ h1 {
   transition: height 0.2s ease, background-color 0.5s ease;
 }
 
+.floating-text {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  color: #0077ff;
+  font-weight: bold;
+  opacity: 0;
+  animation: floatUp 0.5s ease-out forwards;
+}
+
+@keyframes floatUp {
+  0% { opacity: 1; bottom: 10px; }
+  100% { opacity: 0; bottom: 40px; }
+}
+
 .controls p {
   font-size: 18px;
   margin: 10px 0;
@@ -75,8 +90,8 @@ h1 {
   background-color: #0099cc;
 }
 
-/* 升級 / 題目 視窗樣式 */
-#upgrade-modal {
+/* 升級與題目視窗 */
+#upgrade-modal, #question-modal, #ready-modal, #end-screen {
   position: fixed;
   top: 0;
   left: 0;
@@ -86,43 +101,29 @@ h1 {
   display: none;
   justify-content: center;
   align-items: center;
-  z-index: 50;
 }
 
 .modal-content {
   background: white;
   padding: 20px;
   border-radius: 10px;
-  width: 340px;
+  width: 320px;
   text-align: center;
 }
 
-.upgrade-option, .answer-option {
-  margin: 10px 0;
-  padding: 10px;
+.upgrade-option, .answer-option, #restart-button {
+  margin: 8px 0;
+  padding: 8px;
   background-color: #00bfff;
   color: white;
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   cursor: pointer;
-  width: 100%;
-  text-align: left;
+  width: 90%;
 }
 
-.upgrade-option:hover, .answer-option:hover {
+.upgrade-option:hover, .answer-option:hover, #restart-button:hover {
   background-color: #0099cc;
-}
-
-.info-line {
-  margin-top: 10px;
-  font-size: 14px;
-  color: #333;
-}
-
-.small-note {
-  margin-top: 8px;
-  font-size: 13px;
-  color: #666;
 }
 </style>
 </head>
@@ -136,9 +137,7 @@ h1 {
       <p>水量: <span id="water-level">0%</span></p>
       <p>剩餘時間: <span id="timer">45</span>秒</p>
       <button id="click-button">點擊拯救!</button>
-      <p class="small-note">提示：答題答對可獲得技能加成或啟動自動注水。</p>
     </div>
-    <div id="first-correct-msg" class="info-line"></div>
   </div>
 
   <div id="upgrade-modal">
@@ -148,18 +147,36 @@ h1 {
     </div>
   </div>
 
+  <div id="question-modal">
+    <div class="modal-content" id="question-content">
+      <p id="question-text"></p>
+      <div id="answer-options"></div>
+    </div>
+  </div>
+
+  <div id="ready-modal">
+    <div class="modal-content"><p>準備答題...</p></div>
+  </div>
+
+  <div id="end-screen">
+    <div class="modal-content">
+      <h2>遊戲結束！</h2>
+      <p id="final-score"></p>
+      <button id="restart-button">重新開始</button>
+    </div>
+  </div>
+
 <script>
-/* ---------- 遊戲初始參數（你先前改過的） ---------- */
 let waterLevel = 0;
 let timeLeft = 45;
 let clickPower = 0.2;
 let autoFillActive = false;
-let autoFillRate = 1000;    // 毫秒
-let autoFillChance = 0;     // 機率 (0~1) 使加量變成 multiplier
+let autoFillRate = 1000;
+let autoFillChance = 0;
 let autoFillMultiplier = 2;
 let autoFillTimer = null;
+let firstCorrect = false;
 
-/* DOM */
 const water = document.getElementById("water");
 const waterLevelDisplay = document.getElementById("water-level");
 const timerDisplay = document.getElementById("timer");
@@ -167,86 +184,95 @@ const clickButton = document.getElementById("click-button");
 const modal = document.getElementById("upgrade-modal");
 const modalMessage = document.getElementById("modal-message");
 const upgradeOptions = document.getElementById("upgrade-options");
-const firstCorrectMsg = document.getElementById("first-correct-msg");
+const questionModal = document.getElementById("question-modal");
+const questionText = document.getElementById("question-text");
+const answerOptions = document.getElementById("answer-options");
+const readyModal = document.getElementById("ready-modal");
+const endScreen = document.getElementById("end-screen");
+const finalScore = document.getElementById("final-score");
 
-/* 升級次數限制 */
-let upgradeCounts = {
-  option1: 0,
-  option2: 0,
-  option3: 0,
-  option4: 0
-};
+let upgradeCounts = { option1: 0, option2: 0, option3: 0, option4: 0 };
 
-/* 計時器引用 */
-let timerInterval = null;
-
-/* 記錄題目與隨機配置 */
-const initialQuestion = {
-  id: "q0",
-  text: `請問以下哪個角色的想法或態度最有助於減緩大鹽湖的缺水危機?\nA. 農夫:遇到豐水年時，認為自己很幸運，不需要再節約用水\nB. 青年:大鹽湖缺水是上一代惹的禍，他們自行解決就好\nC. 州政府:維持舊有法律，節省下來的水不須回流大鹽湖\nD. 牧場主:和州政府配合，投資新技術以使用更少的水種植農作物`,
-  choices: ["A","B","C","D"],
-  correct: "D",
-  time: 40
-};
-
-/* 四個知識題（會在 35/25/20/10 隨機順序出現） */
-const knowledgeQuestions = [
+const questions = [
   {
-    id: "q1",
-    text: `以下何者和大鹽湖現今面臨的危機較無關係?\nA. 因全球暖化，融冰增加造成水位上升且破壞天然滑雪場\nB. 鹽度上升，致使多種微生物、豐年蝦等都難以生存\nC. 湖床乾涸導致更多有毒沙塵飛揚\nD. 水位下降使孤島和大陸相連，捕食鳥類的掠食者得以進入`,
-    choices: ["A","B","C","D"],
-    correct: "A"
+    time: 40,
+    text: "請問以下哪個角色的想法或態度最有助於減緩大鹽湖的缺水危機？",
+    options: [
+      "農夫:遇到豐水年時，認為自己很幸運，不需要再節約用水",
+      "青年:大鹽湖缺水是上一代惹的禍，他們自行解決就好",
+      "州政府:維持舊有法律，節省下來的水不須回流大鹽湖",
+      "牧場主:和州政府配合，投資新技術以使用更少的水種植農作物"
+    ],
+    correct: 3
   },
   {
-    id: "q2",
-    text: `以下何者在大鹽湖生態系中並非扮演主要角色?\nA. 浮游植物\nB. 豐年蝦\nC. 魚類\nD. 候鳥`,
-    choices: ["A","B","C","D"],
-    correct: "C"
+    time: 35,
+    text: "以下何者和大鹽湖現今面臨的危機較無關係？",
+    options: [
+      "因全球暖化，融冰增加造成水位上升且破壞天然滑雪場",
+      "鹽度上升，致使多種微生物、豐年蝦等都難以生存",
+      "湖床乾涸導致更多有毒沙塵飛揚",
+      "水位下降使孤島和大陸相連，捕食鳥類的掠食者得以進入"
+    ],
+    correct: 0
   },
   {
-    id: "q3",
-    text: `以下敘述何者正確?\nA. 大鹽湖的湖水密度之高，使人們可以輕易浮在水上\nB. 數量驚人的鹽水蒼蠅成為候鳥豐富的食物來源\nC. 不同棵白楊樹間因能共享水資源，使樹群成為地球上最大生物體之一\nD. 喇叭天鵝曾一度瀕臨滅絕，如今有數萬隻，是復育成功的案例\nE. 以上皆是`,
-    choices: ["A","B","C","D","E"],
-    correct: "E"
+    time: 25,
+    text: "以下何者在大鹽湖生態系中並非扮演主要角色？",
+    options: [
+      "浮游植物",
+      "豐年蝦",
+      "魚類",
+      "候鳥"
+    ],
+    correct: 2
   },
   {
-    id: "q4",
-    text: `以下何者消耗了最多大鹽湖上游的水?\nA. 家庭用水\nB. 農業\nC. 植物蒸散作用\nD. 工業`,
-    choices: ["A","B","C","D"],
-    correct: "B"
+    time: 20,
+    text: "以下敘述何者正確？",
+    options: [
+      "大鹽湖的湖水密度之高，使人們可以輕易浮在水上",
+      "數量驚人的鹽水蒼蠅成為候鳥豐富的食物來源",
+      "不同棵白楊樹間因能共享水資源，使樹群成為地球上最大生物體之一",
+      "喇叭天鵝曾一度瀕臨滅絕，如今有數萬隻，是復育成功的案例",
+      "以上皆是"
+    ],
+    correct: 4
+  },
+  {
+    time: 10,
+    text: "以下何者消耗了最多大鹽湖上游的水？",
+    options: [
+      "家庭用水",
+      "農業",
+      "植物蒸散作用",
+      "工業"
+    ],
+    correct: 1
   }
 ];
 
-/* 決定 35/25/20/10 時所對應的題目 (隨機、不重複) */
-const scheduledTimes = [35,25,20,10];
-let scheduledQuestionMap = {}; // time => question obj
-(function assignRandomQuestions(){
-  const pool = [...knowledgeQuestions];
-  // shuffle pool
-  for (let i = pool.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
-  }
-  scheduledTimes.forEach((t, i) => {
-    scheduledQuestionMap[t] = pool[i];
-  });
-})();
+// === 顯示浮動水量 ===
+function showFloatingText(amount) {
+  const text = document.createElement("div");
+  text.className = "floating-text";
+  text.textContent = `+${amount.toFixed(1)}%`;
+  water.appendChild(text);
+  setTimeout(() => text.remove(), 500);
+}
 
-/* 判斷玩家第一次答對題目的時間（倒數秒數） */
-let firstCorrectAt = null;
-
-/* ---------- DOM 更新與自動注水邏輯 ---------- */
+// === 更新水位 ===
 function updateWaterLevel() {
   if (waterLevel > 100) waterLevel = 100;
   waterLevelDisplay.textContent = `${waterLevel.toFixed(1)}%`;
   water.style.height = `${waterLevel}%`;
-
   if (waterLevel < 25) water.style.backgroundColor = "#b0e0e6";
   else if (waterLevel < 50) water.style.backgroundColor = "#87ceeb";
   else if (waterLevel < 75) water.style.backgroundColor = "#4682b4";
   else water.style.backgroundColor = "#1e90ff";
 }
 
+// === 自動注水 ===
 function startAutoFill() {
   if (autoFillTimer) clearInterval(autoFillTimer);
   autoFillActive = true;
@@ -255,189 +281,133 @@ function startAutoFill() {
     if (Math.random() < autoFillChance) addAmount = autoFillMultiplier;
     waterLevel += addAmount;
     updateWaterLevel();
+    showFloatingText(addAmount);
   }, autoFillRate);
 }
 
-function stopAutoFill() {
-  if (autoFillTimer) {
-    clearInterval(autoFillTimer);
-    autoFillTimer = null;
-  }
-  autoFillActive = false;
-}
-
-/* ---------- 計時控制 ---------- */
+// === 暫停與繼續 ===
 function pauseTimer() {
-  if (timerInterval) {
-    clearInterval(timerInterval);
-    timerInterval = null;
-  }
-  // 注意：若已啟動自動注水，應暫停自動注水（modal互動期間不自動注水）
-  if (autoFillTimer) {
-    clearInterval(autoFillTimer);
-  }
+  clearInterval(timerInterval);
+  if (autoFillTimer) clearInterval(autoFillTimer);
 }
-
 function resumeTimer() {
-  // 啟動主倒數（如果尚未啟動）
-  if (!timerInterval) startTimer();
-  // 恢復自動注水（若 previously active）
-  if (autoFillActive) {
-    startAutoFill();
-  }
+  startTimer();
+  if (autoFillActive) startAutoFill();
 }
 
-/* ---------- 升級選單（與你原先邏輯一致） ---------- */
-function showUpgradeMenu() {
-  modal.style.display = "flex";
-  modalMessage.textContent = "選擇一項升級";
-  upgradeOptions.innerHTML = "";
-
-  if (upgradeCounts.option1 < 2)
-    addUpgradeOption("注水量上升（提升點擊增加量）", "option1");
-  if (upgradeCounts.option2 < 2)
-    addUpgradeOption("自動注水頻率上升（更快注水）", "option2");
-  if (upgradeCounts.option3 < 2)
-    addUpgradeOption("自動注水量加倍之機率上升（有機會倍增）", "option3");
-  if (upgradeCounts.option3 > 0 && upgradeCounts.option4 < 1)
-    addUpgradeOption("自動注水倍率上升（把倍增改為更高）", "option4");
-}
-
-function addUpgradeOption(text, optionKey) {
-  const btn = document.createElement("button");
-  btn.className = "upgrade-option";
-  btn.textContent = text;
-  btn.onclick = () => {
-    selectUpgrade(optionKey);
-  };
-  upgradeOptions.appendChild(btn);
-}
-
-function selectUpgrade(optionKey) {
-  upgradeCounts[optionKey]++;
-  if (optionKey === "option1") {
-    // 依序提升： 0.2 -> 0.3 -> 0.4
-    if (clickPower < 0.3) clickPower = 0.3;
-    else clickPower = 0.4;
-  } else if (optionKey === "option2") {
-    if (autoFillRate === 1000) autoFillRate = 800;
-    else autoFillRate = 600;
-    if (autoFillActive) startAutoFill();
-  } else if (optionKey === "option3") {
-    if (autoFillChance === 0) autoFillChance = 0.25;
-    else autoFillChance = 0.5;
-  } else if (optionKey === "option4") {
-    autoFillMultiplier = 3;
-  }
-  // 選完升級後關閉modal並繼續計時
-  modal.style.display = "none";
-  resumeTimer();
-}
-
-/* ---------- 題目顯示/判斷（含 40 秒特殊題） ---------- */
-function showQuestionModal(questionObj, timeOfQuestion) {
-  // 暫停主計時與自動注水
+// === 題目流程 ===
+function showReadyMessage(nextAction) {
   pauseTimer();
-  modal.style.display = "flex";
-  modalMessage.textContent = questionObj.text.replace(/\n/g, "<br>");
-  upgradeOptions.innerHTML = "";
+  readyModal.style.display = "flex";
+  setTimeout(() => {
+    readyModal.style.display = "none";
+    nextAction();
+  }, 2000);
+}
 
-  // Create answer buttons
-  questionObj.choices.forEach(choice => {
+function showQuestion(q) {
+  pauseTimer();
+  questionModal.style.display = "flex";
+  questionText.textContent = q.text;
+  answerOptions.innerHTML = "";
+  q.options.forEach((opt, i) => {
     const btn = document.createElement("button");
     btn.className = "answer-option";
-    btn.textContent = choice + (choice.length === 1 ? "" : "");
-    btn.onclick = () => {
-      handleAnswer(choice, questionObj, timeOfQuestion);
-    };
-    upgradeOptions.appendChild(btn);
+    btn.textContent = opt;
+    btn.onclick = () => handleAnswer(q, i);
+    answerOptions.appendChild(btn);
   });
 }
 
-/* 判斷玩家答案 */
-function handleAnswer(selected, questionObj, timeOfQuestion) {
-  const correct = questionObj.correct;
-  const wasCorrect = (selected === correct);
-
-  // 若還沒有第一次答對紀錄，且本次答對，記錄並且（如果尚未有 autoFillActive）啟動 autoFill
-  if (wasCorrect && firstCorrectAt === null) {
-    firstCorrectAt = timeOfQuestion;
-    firstCorrectMsg.textContent = `你第一次答對題目是在倒數 ${timeOfQuestion} 秒時。`;
-    // 如果尚未啟動自動注水，則給予「獲得新機器，可自動注水」效果與啟動（1 秒後）
-    if (!autoFillActive) {
-      // 顯示短訊息，延遲 1 秒後啟動
-      upgradeOptions.innerHTML = "";
+function handleAnswer(q, i) {
+  questionModal.style.display = "none";
+  if (i === q.correct) {
+    if (!firstCorrect) {
+      firstCorrect = true;
+      modal.style.display = "flex";
       modalMessage.textContent = "獲得新機器，可自動注水！";
+      upgradeOptions.innerHTML = "";
       setTimeout(() => {
         modal.style.display = "none";
         startAutoFill();
         resumeTimer();
-        // 若答對的是 40 秒題（原本也需要在 40 判斷），我們已在這裡處理
       }, 1000);
-      return;
+    } else {
+      showUpgradeMenu();
     }
-    // else 如果 auto 已經 active（不太可能），繼續到給予升級選單步驟
-  }
-
-  // 若玩家答對且 firstCorrectAt 已存在（或剛才不是第一次，但 autoFill 已啟用），
-  // 要顯示升級選單（原先在那些時間點會出現升級的行為）。
-  if (wasCorrect) {
-    // 顯示升級選單 (只有在答對時)
-    showUpgradeMenu();
   } else {
-    // 答錯 -> 直接關閉 modal 並繼續（不顯示升級）
-    modal.style.display = "none";
     resumeTimer();
   }
 }
 
-/* ---------- 主倒數計時 ---------- */
+// === 顯示升級選單 ===
+function showUpgradeMenu() {
+  pauseTimer();
+  modal.style.display = "flex";
+  modalMessage.textContent = "選擇一項升級";
+  upgradeOptions.innerHTML = "";
+  if (upgradeCounts.option1 < 2) addUpgradeOption("每次點擊注水量上升0.1%", "option1");
+  if (upgradeCounts.option2 < 2) addUpgradeOption("自動注水時間間隔縮短0.2秒", "option2");
+  if (upgradeCounts.option3 < 2) addUpgradeOption("自動注水量加倍之機率上升25%", "option3");
+  if (upgradeCounts.option3 > 0 && upgradeCounts.option4 < 1) addUpgradeOption("自動注水遇加倍時，倍率由2倍增為3倍", "option4");
+}
+
+function addUpgradeOption(text, key) {
+  const btn = document.createElement("button");
+  btn.className = "upgrade-option";
+  btn.textContent = text;
+  btn.onclick = () => selectUpgrade(key);
+  upgradeOptions.appendChild(btn);
+}
+
+function selectUpgrade(key) {
+  upgradeCounts[key]++;
+  if (key === "option1") clickPower = clickPower < 0.3 ? 0.3 : 0.4;
+  else if (key === "option2") { autoFillRate = autoFillRate === 1000 ? 800 : 600; if (autoFillActive) startAutoFill(); }
+  else if (key === "option3") autoFillChance = autoFillChance === 0 ? 0.25 : 0.5;
+  else if (key === "option4") autoFillMultiplier = 3;
+  modal.style.display = "none";
+  resumeTimer();
+}
+
+// === 計時 ===
+let timerInterval;
 function startTimer() {
-  if (timerInterval) clearInterval(timerInterval);
+  clearInterval(timerInterval);
   timerInterval = setInterval(() => {
     timeLeft--;
     timerDisplay.textContent = timeLeft;
 
-    // 40 秒特殊題（initialQuestion）
-    if (timeLeft === initialQuestion.time) {
-      // 顯示 initial question modal（40 秒）
-      showQuestionModal(initialQuestion, initialQuestion.time);
-    }
+    const q = questions.find(q => q.time === timeLeft);
+    if (q) showReadyMessage(() => showQuestion(q));
 
-    // 35/25/20/10 時，顯示隨機分配的知識題
-    if (scheduledQuestionMap.hasOwnProperty(timeLeft)) {
-      const qobj = scheduledQuestionMap[timeLeft];
-      showQuestionModal(qobj, timeLeft);
-    }
-
-    // 遊戲結束條件
-    if (timeLeft <= 0) {
-      clearInterval(timerInterval);
-      timerInterval = null;
-      if (autoFillTimer) {
-        clearInterval(autoFillTimer);
-        autoFillTimer = null;
-      }
-      clickButton.disabled = true;
-      const msg = document.createElement("p");
-      msg.textContent = `🌊 遊戲結束！你的最終水位是 ${waterLevel.toFixed(1)}%`;
-      document.querySelector(".game-container").appendChild(msg);
-    }
+    if (timeLeft <= 0) endGame();
   }, 1000);
 }
 
-/* ---------- 點擊事件 ---------- */
+// === 結束頁面 ===
+function endGame() {
+  clearInterval(timerInterval);
+  if (autoFillTimer) clearInterval(autoFillTimer);
+  clickButton.disabled = true;
+  endScreen.style.display = "flex";
+  finalScore.textContent = `你的最終水位是 ${waterLevel.toFixed(1)}%`;
+}
+
+document.getElementById("restart-button").onclick = () => location.reload();
+
+// === 點擊事件 ===
 clickButton.addEventListener("click", () => {
   if (waterLevel < 100) {
     waterLevel += clickPower;
     updateWaterLevel();
+    showFloatingText(clickPower);
   }
 });
 
-/* ---------- 初始化 ---------- */
+// === 開始遊戲 ===
 updateWaterLevel();
 startTimer();
-
 </script>
 </body>
 </html>
