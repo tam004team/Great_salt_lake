@@ -393,8 +393,9 @@ function endGame() {
   endScreen.style.display = "flex";
   finalScore.textContent = `你的最終水位是 ${waterLevel.toFixed(1)}%`;
 }
+document.getElementById("restart-button").onclick = () => location.href = "index.html";
 
-document.getElementById("restart-button").onclick = () => location.reload();
+/*document.getElementById("restart-button").onclick = () => location.reload();*/
 
 // === 點擊事件 ===
 clickButton.addEventListener("click", () => {
