@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>大鹽湖行動</title>
+  <link rel="icon" href="https://raw.githubusercontent.com/tam004team/Great_salt_lake/main/images/Salt_lake_icon.png" type="image/png">
   <style>
     body {
       margin: 0;
@@ -67,6 +68,12 @@
       padding: 0.5em;
       border-radius: 10px;
     }
+
+    footer {
+      margin-top: 2em;
+      font-size: 0.9em;
+      color: #ccc;
+    }
   </style>
 </head>
 <body>
@@ -76,7 +83,7 @@
       <h1>大鹽湖行動</h1>
       <h4>大鹽湖面臨缺水乾涸危機<br>拯救它的作戰，刻不容緩!</h4>
       <div class="intro">
-        <h5>竭盡所能為它注入生命活水吧！究竟大鹽湖能成功補滿水，回復往年孕育諸多生物的能力，抑或是徹底枯竭，就此從地圖上消失?它的命運就掌握在你手上!</h5>
+        <h5>竭盡所能為它注入生命活水吧！究竟大鹽湖能成功補滿水，回復往年孕育諸多生物的能力，抑或是徹底枯竭，就此從地圖上消失? 它的命運就掌握在你手上!</h5>
         <h5>立體劇場電影《探秘大鹽湖》的故事化為這款小遊戲。拯救大鹽湖，行動開始！</h5>
         <h3>🔍 遊戲說明</h3>
         <p>🌌 <strong>背景故事</strong><br>在人類過度開發下，大鹽湖水位顯著下降，面積也大幅縮小，而連年乾旱讓情況雪上加霜。</p>
@@ -85,13 +92,15 @@
       </div>
       <p>註：本遊戲介面設計以手機使用者為主，於電腦瀏覽時部分內容可能無法完整顯示。</p>
       <button onclick="startGame()">開始探險</button>
+      <footer>© 2025 Great Salt Lake Team</footer>
     </div>
   </div>
 
   <script>
     function startGame() {
       localStorage.removeItem('gameTime');
-      location.href = "game.html";
+      // 若遊戲與 index.html 同目錄，直接跳轉
+      location.href = "./game.html";
     }
   </script>
 </body>
