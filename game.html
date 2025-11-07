@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="zh-Hant">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +12,7 @@
 }
 
 body {
-  font-family: Arial, sans-serif;
+  font-family: 'Noto Sans TC', sans-serif;
   background-color: #f0f8ff;
   display: flex;
   justify-content: center;
@@ -90,7 +90,7 @@ h1 {
   background-color: #0099cc;
 }
 
-/* 升級與題目視窗 */
+/* 彈出視窗 */
 #upgrade-modal, #question-modal, #ready-modal, #end-screen {
   position: fixed;
   top: 0;
@@ -160,8 +160,9 @@ h1 {
 
   <div id="end-screen">
     <div class="modal-content">
-      <h2>遊戲結束！</h2>
+      <h2 id="end-title">遊戲結束！</h2>
       <p id="final-score"></p>
+      <p id="end-message"></p>
       <button id="restart-button">重新開始</button>
     </div>
   </div>
@@ -176,6 +177,7 @@ let autoFillChance = 0;
 let autoFillMultiplier = 2;
 let autoFillTimer = null;
 let firstCorrect = false;
+let gameEnded = false;
 
 const water = document.getElementById("water");
 const waterLevelDisplay = document.getElementById("water-level");
@@ -190,21 +192,25 @@ const answerOptions = document.getElementById("answer-options");
 const readyModal = document.getElementById("ready-modal");
 const endScreen = document.getElementById("end-screen");
 const finalScore = document.getElementById("final-score");
+const endTitle = document.getElementById("end-title");
+const endMessage = document.getElementById("end-message");
 
 let upgradeCounts = { option1: 0, option2: 0, option3: 0, option4: 0 };
 
-const questions = [
-  {
-    time: 40,
-    text: "請問以下哪個角色的想法或態度最有助於減緩大鹽湖的缺水危機？",
-    options: [
-      "農夫:遇到豐水年時，認為自己很幸運，不需要再節約用水",
-      "青年:大鹽湖缺水是上一代惹的禍，他們自行解決就好",
-      "州政府:維持舊有法律，節省下來的水不須回流大鹽湖",
-      "牧場主:和州政府配合，投資新技術以使用更少的水種植農作物"
-    ],
-    correct: 3
-  },
+// 題庫
+const firstQuestion = {
+  time: 40,
+  text: "請問以下哪個角色的想法或態度最有助於減緩大鹽湖的缺水危機？",
+  options: [
+    "農夫:遇到豐水年時，認為自己很幸運，不需要再節約用水",
+    "青年:大鹽湖缺水是上一代惹的禍，他們自行解決就好",
+    "州政府:維持舊有法律，節省下來的水不須回流大鹽湖",
+    "牧場主:和州政府配合，投資新技術以使用更少的水種植農作物"
+  ],
+  correct: 3
+};
+
+const otherQuestions = [
   {
     time: 35,
     text: "以下何者和大鹽湖現今面臨的危機較無關係？",
@@ -219,12 +225,7 @@ const questions = [
   {
     time: 25,
     text: "以下何者在大鹽湖生態系中並非扮演主要角色？",
-    options: [
-      "浮游植物",
-      "豐年蝦",
-      "魚類",
-      "候鳥"
-    ],
+    options: ["浮游植物", "豐年蝦", "魚類", "候鳥"],
     correct: 2
   },
   {
@@ -242,17 +243,22 @@ const questions = [
   {
     time: 10,
     text: "以下何者消耗了最多大鹽湖上游的水？",
-    options: [
-      "家庭用水",
-      "農業",
-      "植物蒸散作用",
-      "工業"
-    ],
+    options: ["家庭用水", "農業", "植物蒸散作用", "工業"],
     correct: 1
   }
 ];
 
-// === 顯示浮動水量 ===
+// 隨機打亂後分配時間
+const shuffled = otherQuestions.sort(() => Math.random() - 0.5);
+const questionSchedule = [
+  firstQuestion,
+  { ...shuffled[0], time: 35 },
+  { ...shuffled[1], time: 25 },
+  { ...shuffled[2], time: 20 },
+  { ...shuffled[3], time: 10 }
+];
+
+// ====== 功能區 ======
 function showFloatingText(amount) {
   const text = document.createElement("div");
   text.className = "floating-text";
@@ -261,7 +267,6 @@ function showFloatingText(amount) {
   setTimeout(() => text.remove(), 500);
 }
 
-// === 更新水位 ===
 function updateWaterLevel() {
   if (waterLevel > 100) waterLevel = 100;
   waterLevelDisplay.textContent = `${waterLevel.toFixed(1)}%`;
@@ -270,9 +275,10 @@ function updateWaterLevel() {
   else if (waterLevel < 50) water.style.backgroundColor = "#87ceeb";
   else if (waterLevel < 75) water.style.backgroundColor = "#4682b4";
   else water.style.backgroundColor = "#1e90ff";
+
+  if (!gameEnded && waterLevel >= 100) endGame(true);
 }
 
-// === 自動注水 ===
 function startAutoFill() {
   if (autoFillTimer) clearInterval(autoFillTimer);
   autoFillActive = true;
@@ -285,7 +291,6 @@ function startAutoFill() {
   }, autoFillRate);
 }
 
-// === 暫停與繼續 ===
 function pauseTimer() {
   clearInterval(timerInterval);
   if (autoFillTimer) clearInterval(autoFillTimer);
@@ -295,7 +300,6 @@ function resumeTimer() {
   if (autoFillActive) startAutoFill();
 }
 
-// === 題目流程 ===
 function showReadyMessage(nextAction) {
   pauseTimer();
   readyModal.style.display = "flex";
@@ -340,7 +344,6 @@ function handleAnswer(q, i) {
   }
 }
 
-// === 顯示升級選單 ===
 function showUpgradeMenu() {
   pauseTimer();
   modal.style.display = "flex";
@@ -378,35 +381,47 @@ function startTimer() {
     timeLeft--;
     timerDisplay.textContent = timeLeft;
 
-    const q = questions.find(q => q.time === timeLeft);
+    const q = questionSchedule.find(q => q.time === timeLeft);
     if (q) showReadyMessage(() => showQuestion(q));
 
     if (timeLeft <= 0) endGame();
   }, 1000);
 }
 
-// === 結束頁面 ===
-function endGame() {
+// === 結束 ===
+function endGame(isEarlyWin = false) {
+  if (gameEnded) return;
+  gameEnded = true;
   clearInterval(timerInterval);
   if (autoFillTimer) clearInterval(autoFillTimer);
   clickButton.disabled = true;
+
   endScreen.style.display = "flex";
   finalScore.textContent = `你的最終水位是 ${waterLevel.toFixed(1)}%`;
-}
-document.getElementById("restart-button").onclick = () => location.href = "index.html";
 
-/*document.getElementById("restart-button").onclick = () => location.reload();*/
+  if (isEarlyWin || waterLevel >= 67) {
+    endTitle.textContent = "🎉 恭喜過關！";
+    endMessage.textContent = "恭喜!大鹽湖水位已恢復正常，謝謝你的努力!";
+  } else {
+    endTitle.textContent = "💧 挑戰失敗";
+    endMessage.textContent = "好可惜!大鹽湖水位仍不足，再接再厲!";
+  }
+}
+
+document.getElementById("restart-button").onclick = () => {
+  location.href = "index.html";
+};
 
 // === 點擊事件 ===
 clickButton.addEventListener("click", () => {
-  if (waterLevel < 100) {
+  if (waterLevel < 100 && !gameEnded) {
     waterLevel += clickPower;
     updateWaterLevel();
     showFloatingText(clickPower);
   }
 });
 
-// === 開始遊戲 ===
+// === 開始 ===
 updateWaterLevel();
 startTimer();
 </script>
