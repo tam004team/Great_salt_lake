@@ -88,7 +88,7 @@ h1 {
 }
 
 /* 彈窗 */
-#upgrade-modal, #question-modal, #ready-modal, #end-screen {
+#knowledge-modal, #correct-modal, #wrong-modal, #upgrade-modal, #question-modal, #ready-modal, #end-screen {
   position: fixed;
   top: 0;
   left: 0;
@@ -153,6 +153,25 @@ h1 {
   <div id="ready-modal">
     <div class="modal-content"><p>準備答題...</p></div>
   </div>
+
+  <div id="correct-modal" style="display:none;">
+  <div class="modal-content">
+    <p>答對了，真厲害!</p>
+  </div>
+</div>
+
+<div id="wrong-modal" style="display:none;">
+  <div class="modal-content">
+    <p>答錯了，再加油!</p>
+  </div>
+</div>
+
+<div id="knowledge-modal" style="display:none;">
+  <div class="modal-content">
+    <p id="knowledge-text"></p>
+    <button id="knowledge-confirm" class="upgrade-option">確定</button>
+  </div>
+</div>
 
   <div id="end-screen">
     <div class="modal-content">
@@ -247,6 +266,21 @@ const otherQuestions = [
   }
 ];
 
+/* === 知識視窗內容 === */
+const knowledgeTexts = {
+  "請問以下哪個角色的想法或態度最有助於減緩大鹽湖的缺水危機？":
+    "農夫在豐水年仍須未雨綢繆節約用水。<br><br>大鹽湖的命運和青年的未來息息相關，因此他們應積極參與保護它的行動。<br><br>州政府修改法律有助使節省下來的水回流大鹽湖。",
+
+  "以下何者和大鹽湖現今面臨的危機較無關係？":
+    "大鹽湖現今的主要危機為水位不足，此現象導致孤島和大陸相連，使捕食鳥類的掠食者得以進入孤島。<br><br>另外，總水量下降使鹽度上升，生物因此更加難以生存。<br><br>乾涸的湖床也讓更多有毒沙塵被風吹起。",
+
+  "以下何者在大鹽湖生態系中並非扮演主要角色？":
+    "浮游植物、豐年蝦、候鳥皆是大鹽湖生態系的一份子，但湖水鹽度太高，魚類無法生存。",
+
+  "以下何者消耗了最多大鹽湖上游的水？":
+    "農業用水占大鹽湖上游之引用水的60%以上。"
+};
+
 // 排序題目
 const shuffled = otherQuestions.sort(() => Math.random() - 0.5);
 const questionSchedule = [
@@ -340,23 +374,83 @@ function showQuestion(q) {
 
 function handleAnswer(q, i) {
   questionModal.style.display = "none";
+  pauseTimer();
 
-  if (i === q.correct) {
-    if (!firstCorrect) {
-      firstCorrect = true;
-      modal.style.display = "flex";
-      modalMessage.textContent = "獲得新機器，可自動注水！";
-      upgradeOptions.innerHTML = "";
-      setTimeout(() => {
-        modal.style.display = "none";
-        startAutoFill();
-        resumeTimer();
-      }, 1000);
-    } else {
-      showUpgradeMenu();
+  const correctModal = document.getElementById("correct-modal");
+  const wrongModal = document.getElementById("wrong-modal");
+  const knowledgeModal = document.getElementById("knowledge-modal");
+  const knowledgeText = document.getElementById("knowledge-text");
+  const knowledgeConfirm = document.getElementById("knowledge-confirm");
+
+  const hasKnowledge = knowledgeTexts[q.text] !== undefined;
+
+  // 處理知識視窗後的動作（答對流程 or 答錯流程）
+  function continueAfterKnowledge() {
+    // ⭐ 答對
+    if (i === q.correct) {
+      // 第一題：給新機器
+      if (!firstCorrect) {
+        firstCorrect = true;
+        modal.style.display = "flex";
+        modalMessage.textContent = "獲得新機器，可自動注水！";
+        upgradeOptions.innerHTML = "";
+        setTimeout(() => {
+          modal.style.display = "none";
+          startAutoFill();
+          resumeTimer();
+        }, 1000);
+      } else {
+        // 其他題：升級選單
+        showUpgradeMenu();
+      }
     }
-  } else {
-    resumeTimer();
+    else {
+      // ⭐ 答錯 → 繼續遊戲
+      resumeTimer();
+    }
+  }
+
+  // =======================
+  // ⭐ 先顯示答對 / 答錯
+  // =======================
+  if (i === q.correct) {
+    correctModal.style.display = "flex";
+    setTimeout(() => {
+      correctModal.style.display = "none";
+
+      // ⭐ 若有知識 → 顯示知識視窗
+      if (hasKnowledge) {
+        knowledgeText.innerHTML = knowledgeTexts[q.text];
+        knowledgeModal.style.display = "flex";
+
+        knowledgeConfirm.onclick = () => {
+          knowledgeModal.style.display = "none";
+          continueAfterKnowledge();
+        };
+      } else {
+        continueAfterKnowledge();
+      }
+
+    }, 1000);
+  }
+  else {
+    wrongModal.style.display = "flex";
+    setTimeout(() => {
+      wrongModal.style.display = "none";
+
+      if (hasKnowledge) {
+        knowledgeText.innerHTML = knowledgeTexts[q.text];
+        knowledgeModal.style.display = "flex";
+
+        knowledgeConfirm.onclick = () => {
+          knowledgeModal.style.display = "none";
+          continueAfterKnowledge();
+        };
+
+      } else {
+        continueAfterKnowledge();
+      }
+    }, 1000);
   }
 }
 
