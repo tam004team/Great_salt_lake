@@ -36,24 +36,21 @@ h1 {
   margin-bottom: 20px;
 }
 
+/* 湖的背景將改用三張圖片切換 */
 .lake {
   width: 100%;
   height: 200px;
-  background-color: #e0e0e0;
+  background-size: cover;
+  background-position: center;
   border: 2px solid #00bfff;
   margin-bottom: 20px;
-  position: relative;
-  overflow: hidden;
   border-radius: 5px;
+  position: relative;
 }
 
+/* 水位視覺已不再使用，但保留節省改動 */
 .water {
-  position: absolute;
-  bottom: 0;
-  width: 100%;
-  height: 0%;
-  background-color: #b0e0e6;
-  transition: height 0.2s ease, background-color 0.5s ease;
+  display: none;
 }
 
 .floating-text {
@@ -90,7 +87,7 @@ h1 {
   background-color: #0099cc;
 }
 
-/* 彈出視窗 */
+/* 彈窗 */
 #upgrade-modal, #question-modal, #ready-modal, #end-screen {
   position: fixed;
   top: 0;
@@ -130,9 +127,8 @@ h1 {
 <body>
   <div class="game-container">
     <h1>拯救乾涸的大鹽湖</h1>
-    <div class="lake">
-      <div class="water" id="water"></div>
-    </div>
+    <div class="lake" id="lake"></div>
+
     <div class="controls">
       <p>水量: <span id="water-level">0%</span></p>
       <p>剩餘時間: <span id="timer">45</span>秒</p>
@@ -179,16 +175,19 @@ let autoFillTimer = null;
 let firstCorrect = false;
 let gameEnded = false;
 
-const water = document.getElementById("water");
+const lake = document.getElementById("lake");
 const waterLevelDisplay = document.getElementById("water-level");
 const timerDisplay = document.getElementById("timer");
 const clickButton = document.getElementById("click-button");
+
 const modal = document.getElementById("upgrade-modal");
 const modalMessage = document.getElementById("modal-message");
 const upgradeOptions = document.getElementById("upgrade-options");
+
 const questionModal = document.getElementById("question-modal");
 const questionText = document.getElementById("question-text");
 const answerOptions = document.getElementById("answer-options");
+
 const readyModal = document.getElementById("ready-modal");
 const endScreen = document.getElementById("end-screen");
 const finalScore = document.getElementById("final-score");
@@ -197,7 +196,7 @@ const endMessage = document.getElementById("end-message");
 
 let upgradeCounts = { option1: 0, option2: 0, option3: 0, option4: 0 };
 
-// 題庫
+/* === 題庫 === */
 const firstQuestion = {
   time: 40,
   text: "請問以下哪個角色的想法或態度最有助於減緩大鹽湖的缺水危機？",
@@ -248,7 +247,7 @@ const otherQuestions = [
   }
 ];
 
-// 隨機打亂後分配時間
+// 排序題目
 const shuffled = otherQuestions.sort(() => Math.random() - 0.5);
 const questionSchedule = [
   firstQuestion,
@@ -258,27 +257,40 @@ const questionSchedule = [
   { ...shuffled[3], time: 10 }
 ];
 
-// ====== 功能區 ======
-function showFloatingText(amount) {
-  const text = document.createElement("div");
-  text.className = "floating-text";
-  text.textContent = `+${amount.toFixed(1)}%`;
-  water.appendChild(text);
-  setTimeout(() => text.remove(), 500);
+/*===============
+  ⭐ 切換背景圖片
+===============*/
+function updateLakeImage() {
+  if (waterLevel < 33) {
+    lake.style.backgroundImage =
+     "url('https://raw.githubusercontent.com/tam004team/Great_salt_lake/main/images/Salt_lake(gif)-46.png')";
+  } else if (waterLevel < 67) {
+    lake.style.backgroundImage =
+     "url('https://raw.githubusercontent.com/tam004team/Great_salt_lake/main/images/Salt_lake(gif)-23.png')";
+  } else {
+    lake.style.backgroundImage =
+     "url('https://raw.githubusercontent.com/tam004team/Great_salt_lake/main/images/Salt_lake(gif)-0.png')";
+  }
 }
 
+/* 舊 visual 效果全取消，只更新數字 & 圖片 */
 function updateWaterLevel() {
   if (waterLevel > 100) waterLevel = 100;
-  waterLevelDisplay.textContent = `${waterLevel.toFixed(1)}%`;
-  water.style.height = `${waterLevel}%`;
-  if (waterLevel < 25) water.style.backgroundColor = "#b0e0e6";
-  else if (waterLevel < 50) water.style.backgroundColor = "#87ceeb";
-  else if (waterLevel < 75) water.style.backgroundColor = "#4682b4";
-  else water.style.backgroundColor = "#1e90ff";
+  waterLevelDisplay.textContent = `${parseFloat(waterLevel.toFixed(2))}%`;
+  updateLakeImage();
 
   if (!gameEnded && waterLevel >= 100) endGame(true);
 }
 
+function showFloatingText(amount) {
+  const text = document.createElement("div");
+  text.className = "floating-text";
+  text.textContent = `+${parseFloat(amount.toFixed(2))}%`;
+  lake.appendChild(text);
+  setTimeout(() => text.remove(), 500);
+}
+
+/* 自動注水 */
 function startAutoFill() {
   if (autoFillTimer) clearInterval(autoFillTimer);
   autoFillActive = true;
@@ -291,10 +303,12 @@ function startAutoFill() {
   }, autoFillRate);
 }
 
+/* 計時暫停 / 恢復 */
 function pauseTimer() {
   clearInterval(timerInterval);
   if (autoFillTimer) clearInterval(autoFillTimer);
 }
+
 function resumeTimer() {
   startTimer();
   if (autoFillActive) startAutoFill();
@@ -309,6 +323,7 @@ function showReadyMessage(nextAction) {
   }, 2000);
 }
 
+/* 題目 */
 function showQuestion(q) {
   pauseTimer();
   questionModal.style.display = "flex";
@@ -325,6 +340,7 @@ function showQuestion(q) {
 
 function handleAnswer(q, i) {
   questionModal.style.display = "none";
+
   if (i === q.correct) {
     if (!firstCorrect) {
       firstCorrect = true;
@@ -344,15 +360,17 @@ function handleAnswer(q, i) {
   }
 }
 
+/* 升級選單 */
 function showUpgradeMenu() {
   pauseTimer();
   modal.style.display = "flex";
   modalMessage.textContent = "選擇一項升級";
   upgradeOptions.innerHTML = "";
-  if (upgradeCounts.option1 < 2) addUpgradeOption("注水量上升", "option1");
-  if (upgradeCounts.option2 < 2) addUpgradeOption("自動注水頻率上升", "option2");
-  if (upgradeCounts.option3 < 2) addUpgradeOption("自動注水量加倍之機率上升", "option3");
-  if (upgradeCounts.option3 > 0 && upgradeCounts.option4 < 1) addUpgradeOption("自動注水倍率上升", "option4");
+
+  if (upgradeCounts.option1 < 2) addUpgradeOption("每次點擊注水量上升0.05%", "option1");
+  if (upgradeCounts.option2 < 2) addUpgradeOption("自動注水時間間隔縮短20%", "option2");
+  if (upgradeCounts.option3 < 2) addUpgradeOption("自動注水量加倍之機率上升25%", "option3");
+  if (upgradeCounts.option3 > 0 && upgradeCounts.option4 < 1) addUpgradeOption("每次自動注水量加倍時，倍率上升至3倍", "option4");
 }
 
 function addUpgradeOption(text, key) {
@@ -365,15 +383,20 @@ function addUpgradeOption(text, key) {
 
 function selectUpgrade(key) {
   upgradeCounts[key]++;
-  if (key === "option1") clickPower = clickPower < 0.3 ? 0.3 : 0.4;
-  else if (key === "option2") { autoFillRate = autoFillRate === 1000 ? 800 : 600; if (autoFillActive) startAutoFill(); }
+
+  if (key === "option1") clickPower = clickPower < 0.25 ? 0.25 : 0.3;
+  else if (key === "option2") {
+    autoFillRate = autoFillRate === 1000 ? 800 : 640;
+    if (autoFillActive) startAutoFill();
+  }
   else if (key === "option3") autoFillChance = autoFillChance === 0 ? 0.25 : 0.5;
   else if (key === "option4") autoFillMultiplier = 3;
+
   modal.style.display = "none";
   resumeTimer();
 }
 
-// === 計時 ===
+/* 計時器 */
 let timerInterval;
 function startTimer() {
   clearInterval(timerInterval);
@@ -388,22 +411,23 @@ function startTimer() {
   }, 1000);
 }
 
-// === 結束 ===
+/* 結束畫面 */
 function endGame(isEarlyWin = false) {
   if (gameEnded) return;
   gameEnded = true;
+
   clearInterval(timerInterval);
   if (autoFillTimer) clearInterval(autoFillTimer);
   clickButton.disabled = true;
 
   endScreen.style.display = "flex";
-  finalScore.textContent = `你的最終水位是 ${waterLevel.toFixed(1)}%`;
+  finalScore.textContent = `你的最終水位是 ${parseFloat(waterLevel.toFixed(2))}%`;
 
   if (isEarlyWin || waterLevel >= 67) {
     endTitle.textContent = "🎉 恭喜過關！";
     endMessage.textContent = "恭喜!大鹽湖水位已恢復正常，謝謝你的努力!";
   } else {
-    endTitle.textContent = "💧 挑戰失敗";
+    endTitle.textContent = "😢 挑戰失敗";
     endMessage.textContent = "好可惜!大鹽湖水位仍不足，再接再厲!";
   }
 }
@@ -412,7 +436,7 @@ document.getElementById("restart-button").onclick = () => {
   location.href = "index.html";
 };
 
-// === 點擊事件 ===
+/* 點擊注水 */
 clickButton.addEventListener("click", () => {
   if (waterLevel < 100 && !gameEnded) {
     waterLevel += clickPower;
@@ -421,7 +445,8 @@ clickButton.addEventListener("click", () => {
   }
 });
 
-// === 開始 ===
+/* 開局設定 */
+updateLakeImage();
 updateWaterLevel();
 startTimer();
 </script>
